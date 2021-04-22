@@ -7,5 +7,5 @@ build
 venv
 *.egg-info/
 *.sage.py
-_sage.py
+*_sage.py
 

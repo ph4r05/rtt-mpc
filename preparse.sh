@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd rtt_mpc || exit 1
+
 $SAGE -preparse common.sage
 $SAGE -preparse starkad_poseidon.sage
 

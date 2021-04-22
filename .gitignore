@@ -1,0 +1,11 @@
+.idea
+*.pyc
+dist
+bin
+Virtualenv
+build
+venv
+*.egg-info/
+*.sage.py
+_sage.py
+

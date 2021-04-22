@@ -1,0 +1,3 @@
+[submodule "hadeshash"]
+	path = hadeshash
+	url = https://extgit.iaik.tugraz.at/krypto/hadeshash.git

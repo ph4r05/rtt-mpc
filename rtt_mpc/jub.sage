@@ -1,7 +1,10 @@
+"""
+Note that Pedersen Hash cannot be directly tested with randomness detection tools as it produces an EC point which
+is not uniformly distributed on a binary interval (e.g., 1/2 of the space is not covered).
+"""
+
 from sage.all import *
 # TODO remove all sage code, make it purely python so can use python3
-
-# TODO refactor some of the code
 
 
 # bits are in little endian in bit format

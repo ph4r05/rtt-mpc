@@ -1,3 +1,5 @@
+import math
+
 # https://wordpress-434650-1388715.cloudwaysapps.com/developers-community/hash-challenge/hash-challenge-implementation-reference-code/#marvellous
 # Prime fields.
 F61 = GF(2**61 + 20 * 2**32 + 1)  # 0x2000001400000001
@@ -30,6 +32,28 @@ Bin91 = GF(2**91, name='a', modulus=X**91 + X**8 + X**5 + X + 1)
 Bin127 = GF(2**127, name='a', modulus=X**127 + X + 1)
 Bin161 = GF(2**161, name='a', modulus=X**161 + X**18 + 1)
 Bin255 = GF(2**255, name='a', modulus=X**255 + X**5 + X**3 + X**2 + 1)
+
+MPC_FIELDS = {
+    'F61': F61,
+    'F81': F81,
+    'F91': F91,
+    'F125': F125,
+    'F161': F161,
+    'F253': F253,
+    'F_PBN254': F_PBN254,
+    'F_QBN254': F_QBN254,
+    'F_QBN128': F_QBN128,
+    'F_PBLS12_381': F_PBLS12_381,
+    'F_QBLS12_381': F_QBLS12_381,
+    'F_PED25519': F_PED25519,
+    'F_QED25519': F_QED25519,
+    'Bin63': Bin63,
+    'Bin81': Bin81,
+    'Bin91': Bin91,
+    'Bin127': Bin127,
+    'Bin161': Bin161,
+    'Bin255': Bin255,
+}
 
 
 def check_collision(hash_func, params, input1, input2):
@@ -92,6 +116,28 @@ def generate_round_constant(fn_name, field, idx):
         return int2field(field, val % field.order())
 
 
+def int2field_alt(field, val):
+    """
+    Converts val to an element of a binary field according to the binary
+    representation of val.
+    For example, 11=0b1011 is converted to 1*a^3 + 0*a^2 + 1*a + 1.
+    """
+    assert field.characteristic() == 2
+    # assert 0 <= val < field.order(), \
+    #     'Value %d out of range. Expected 0 <= val < %d.' % (val, field.order())
+
+    # res = field(map(int, bin(val)[2:][::-1]))
+    # res = field([x for x in map(int, bin(val)[2:][::-1])])
+    res = []
+    c = 1
+    while c <= val:
+        res.append(int((val & c) == c))
+        c *= 2
+    res = field(res)
+    assert res.integer_representation() == val
+    return res
+
+
 def int2field(field, val):
     """
     Converts val to an element of a binary field according to the binary
@@ -103,7 +149,7 @@ def int2field(field, val):
         'Value %d out of range. Expected 0 <= val < %d.' % (val, field.order())
 
     # res = field(map(int, bin(val)[2:][::-1]))
-    res = field([x for x in map(int, bin(val)[2:][::-1])])
+    res = field(list(map(int, bin(val)[2:][::-1])))
 
     assert res.integer_representation() == val
     return res
@@ -158,3 +204,57 @@ def generate_mds_matrix(name, field, m):
             # There are no eigenvalues in the field.
             return mds
     raise Exception('No good MDS found')
+
+
+def get_field_size(field):
+    """Returns log2-size of the field so all elements can be represented in the given bitsize"""
+    return int(math.ceil(math.log(int(field.cardinality()), 2)))
+
+
+def is_binary_field(field):
+    """Returns true if input field is binary, i.e., has characteristics 2"""
+    return field.characteristic() == 2
+
+
+def get_fieldizer(field):
+    """Returns a function converting integer vectors to a field vectors"""
+    return (lambda x: binary_vector(field, x)) if is_binary_field(field) \
+        else (lambda x: vector(field, x))
+
+
+def get_defieldizer(field):
+    """Returns a function converting field elements to integers (input is a vector)"""
+    return (lambda x: [int(z.integer_representation()) for z in x]) if is_binary_field(field) \
+        else (lambda x: [int(z) for z in x])
+
+
+def get_input_block_filler_field(field, uses_sponge=False, m=None, r=None):
+    """Returns function padding input block to a block of required size. Returns a field vector.
+        e.g., sponge requires |input| % r == 0, else is padded to |input| == m"""
+    if uses_sponge:
+        # |inp_vct| % params.r == 0
+        return lambda inp_vct: inp_vct if len(inp_vct) % r == 0 else vector(list(inp_vct) + ([field(0)] * (r - len(inp_vct) % r)))
+
+    else:
+        # |inp_vct| == params.m
+        return lambda inp_vct: inp_vct if len(inp_vct) == m else vector(list(inp_vct) + [field(0)] * (m - len(inp_vct)))
+
+
+def get_input_block_filler(field, uses_sponge=False, m=None, r=None):
+    """Returns function padding input block to a block of required size
+    e.g., sponge requires |input| % r == 0, else is padded to |input| == m"""
+    if uses_sponge:
+        # |inp_vct| % params.r == 0
+        return lambda inp_vct: inp_vct if len(inp_vct) % r == 0 else inp_vct + [0] * (r - len(inp_vct) % r)
+
+    else:
+        # |inp_vct| == params.m
+        return lambda inp_vct: inp_vct if len(inp_vct) == m else inp_vct + [0] * (m - len(inp_vct))
+
+
+def get_int_reader(islicer, endian='big'):
+    """Returns a function reading bytes from input slicer, converting them to integers and yielding out"""
+    def int_reader():
+        for chunk in islicer.process():
+            yield int.from_bytes(bytes(chunk), byteorder=endian)
+    return int_reader

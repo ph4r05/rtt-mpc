@@ -1,8 +1,24 @@
+import sys
+import math
+import logging
+
 load('common.sage')
+from base import InputSlicer, OutputSequencer, chunks
+
+
+logger = logging.getLogger(__name__)
+try:
+    import coloredlogs
+    coloredlogs.install(level=logging.INFO)
+except:
+    pass
 
 
 class HadesParams(object):
-    def __init__(self, field, r, c, Rf, Rp, alpha=3, rcs=None, mds=None, lsbox=True):
+    def __init__(self, field, r, c, Rf, Rp, alpha=3, rcs=None, mds=None, lsbox=True, reduced=False):
+        if not field:
+            raise ValueError('Unknown field %s' % (field,))
+
         self.field = field
         self.r = r
         self.c = c
@@ -11,9 +27,15 @@ class HadesParams(object):
         self.Rf = Rf
         self.Rp = Rp
         self.n_rounds = n_rounds = Rf + Rp
-        self.output_size = c
+        self.output_size = c  # so squeeze is without F invocation, has to be <= r
         self.alpha = alpha
         self.lsbox = lsbox
+
+        self.reduced = reduced
+        self.r_full1 = None
+        self.r_part = None
+        self.r_full2 = None
+
         assert self.output_size <= r
         # A list of Rf+Rp vectors for the Add-Round Key phase.
         if rcs is not None:
@@ -32,6 +54,19 @@ class HadesParams(object):
 
         else:
             self.mds = generate_mds_matrix('HadesMDS', field, m)
+
+    def change_rounds(self, full, partial):
+        self.Rf = full
+        self.Rp = partial
+        self.n_rounds = full + partial
+        return self
+
+    def change_rounds_detail(self, rf1, rp1, rf2):
+        self.reduced = True
+        self.r_full1 = rf1
+        self.r_part = rp1
+        self.r_full2 = rf2
+        self.n_rounds = rf1 + rp1 + rf2
 
 
 # Parameter sets.
@@ -68,6 +103,9 @@ Poseidon_S128f_MDS_matrix = [[0x354423b163d1078b0dd645be56316e34a9b98e52dcf9f469
 Poseidon_S128_BLS12_138 = HadesParams(field=F_QBLS12_381, r=3, c=2, Rf=8, Rp=60, alpha=5,
                                       rcs=Poseidon_S128f_round_constants, mds=Poseidon_S128f_MDS_matrix, lsbox=False)
 
+# Poseidon_S128_BLS12_138_a3 = HadesParams(field=F_QBLS12_381, r=3, c=2, Rf=8, Rp=60, alpha=3,
+#                                          rcs=Poseidon_S128f_round_constants, mds=Poseidon_S128f_MDS_matrix, lsbox=False)
+
 # Poseidon_S256a = HadesParams(field=F125, r=4, c=4, Rf=8, Rp=82)
 # Starkad_S256a = HadesParams(field=Bin127, r=4, c=4, Rf=8, Rp=86)
 # Poseidon_S256b = HadesParams(field=F125, r=10, c=4, Rf=8, Rp=83)
@@ -79,21 +117,21 @@ def hades_permutation(values, params):
 
     round_idx = 0
     # Apply Rf/2 full rounds.
-    for i in range(params.Rf // 2):
+    for i in range((params.Rf // 2) if not params.reduced else params.r_full1):
         values = hades_round(values, params, True, round_idx)
         round_idx += 1
 
     # Apply Rp partial rounds.
-    for i in range(params.Rp):
+    for i in range((params.Rp) if not params.reduced else params.r_part):
         values = hades_round(values, params, False, round_idx)
         round_idx += 1
 
     # Apply Rf/2 full rounds.
-    for i in range(params.Rf // 2):
+    for i in range((params.Rf // 2) if not params.reduced else params.r_full2):
         values = hades_round(values, params, True, round_idx)
         round_idx += 1
 
-    assert round_idx == params.n_rounds
+    assert params.reduced or round_idx == params.n_rounds
 
     return values
 
@@ -144,8 +182,187 @@ def test():
                0x4dc4e29d283afd2a491fe6aef122b9a968e74eff05341f3cc23fda1781dcb566,
                0x03ff622da276830b9451b88b85e6184fd6ae15c8ab3ee25a5667be8592cce3b1]
     assert (test_res == vector(Poseidon_S128_BLS12_138.field, exp_res))
+
+    vv = vector(Poseidon_S128_BLS12_138.field, [0, 1, 2])
+    sponge(hades_permutation, vv, Poseidon_S128_BLS12_138)
     print('[OK] Test vector for Poseidon_S128_BLS12_138 passed')
 
 
+def main_poseidon():
+    import argparse
+    parser = argparse.ArgumentParser(description='Poseidon / Starkad')
+    parser.add_argument('--debug', dest='debug', action='store_const', const=True,
+                        help='enables debug mode')
+    parser.add_argument('--test', dest='test', action='store_const', const=True,
+                        help='runs test vectors')
+
+    parser.add_argument('--raw', dest='raw', action='store_const', const=True,
+                        help='Use raw permutation function, without sponge')
+    parser.add_argument('-f', dest='function',
+                        help='Named function name to use')
+
+    parser.add_argument('--red-rf1', dest='red_rounds_full1', type=int,
+                        help='Rounds full 1')
+    parser.add_argument('--red-rf2', dest='red_rounds_full2', type=int,
+                        help='Rounds full 2')
+    parser.add_argument('--red-rp', dest='red_rounds_partial', type=int,
+                        help='Rounds full 1')
+
+    parser.add_argument('--field', dest='field',
+                        help='Field f')
+    parser.add_argument('--rate', dest='rate', type=int,
+                        help='Rate r')
+    parser.add_argument('--cap', dest='capacity', type=int,
+                        help='Capacity c')
+    parser.add_argument('--alpha', dest='alpha', type=int,
+                        help='Alpha - exponent')
+    parser.add_argument('--rf', dest='rounds_full', type=int,
+                        help='Rf')
+    parser.add_argument('--rp', dest='rounds_partial', type=int,
+                        help='Rp')
+
+    parser.add_argument('--inp-endian', dest='inp_endian', default='big',
+                        help='Input block size endian')
+    parser.add_argument('--inp-block-size', dest='inp_block_size', type=int,
+                        help='Input block size')
+    parser.add_argument('--inp-block-count', dest='inp_block_count', type=int,
+                        help='Block count per one hash operation')
+    parser.add_argument('--out-block-size', dest='out_block_size', type=int,
+                        help='Size of the output block, enables to trim the output, concat field elements precisely '
+                             'or left-pad the field element (e.g., to full bytes)')
+    parser.add_argument('--out-blocks', dest='out_blocks', type=int,
+                        help='Number of output blocks to process')
+
+    cparams = None
+
+    logger.info('Initializing...')
+    args = parser.parse_args()
+    cc = args.function
+    if args.test:
+        test()
+
+    is_red = [
+        args.red_rounds_full1 is not None,
+        args.red_rounds_full2 is not None,
+        args.red_rounds_partial is not None,
+    ]
+    use_red = sum(is_red) == 3
+
+    is_spec = [
+        args.field is not None,
+        args.rate is not None,
+        args.capacity is not None,
+        args.alpha is not None,
+        args.rounds_full is not None,
+        args.rounds_partial is not None,
+    ]
+    use_spec = sum(is_spec) == len(is_spec)
+
+    if cc is not None and sum(is_spec) > 0:
+        raise ValueError('Cannot define named function and params specs, conflict')
+    if sum(is_red) > 0 and not use_spec:
+        raise ValueError('When using reduced option, specify all parameters')
+    if not args.raw and sum(is_spec) > 0 and not use_spec:
+        raise ValueError('When using specs, specify all parameters')
+
+    sfield = (args.field or 'F_QBLS12_381').upper()
+    fields = MPC_FIELDS
+    field = (fields[sfield] if sfield in fields else None)
+    i_r, i_c, i_rf, i_rp, i_alpha = args.rate, args.capacity, args.rounds_full, args.rounds_partial, args.alpha or 5,
+
+    if cc is None or cc == '':
+        # Reasonable default for unnamed ciphers
+        cparams = HadesParams(field=field,
+                              r=i_r,
+                              c=i_c,
+                              Rf=i_rf,
+                              Rp=i_rp,
+                              alpha=i_alpha or 5)
+
+    elif cc == 'Poseidon_S128_BLS12_138':
+        field = F_QBLS12_381
+        if not use_red and not is_spec:
+            cparams = Poseidon_S128_BLS12_138
+        else:
+            cparams = HadesParams(field=field,
+                                  r=i_r or 3,
+                                  c=i_c or 2,
+                                  Rf=i_rf or 8,
+                                  Rp=i_rp or 60,
+                                  alpha=i_alpha or 5,
+                                  rcs=Poseidon_S128f_round_constants,
+                                  mds=Poseidon_S128f_MDS_matrix,
+                                  lsbox=False)
+
+    elif cc == 'Poseidon_S128a':
+        cparams = HadesParams(field=F125, r=i_r or 2, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 81, alpha=i_alpha)
+
+    elif cc == 'Starkad_S128a':
+        cparams = HadesParams(field=Bin127, r=i_r or 2, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 85, alpha=i_alpha)
+
+    elif cc == 'Poseidon_S128b':
+        cparams = HadesParams(field=F253, r=i_r or 2, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 83, alpha=i_alpha)
+
+    elif cc == 'Starkad_S128b':
+        cparams = HadesParams(field=Bin255, r=i_r or 2, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 85, alpha=i_alpha)
+
+    elif cc == 'Poseidon_S128c':
+        cparams = HadesParams(field=F125, r=i_r or 10, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 83, alpha=i_alpha)
+
+    elif cc == 'Poseidon_S128d':
+        cparams = HadesParams(field=F61, r=i_r or 8, c=i_c or 4, Rf=i_rf or 8, Rp=i_rp or 40, alpha=i_alpha)
+
+    elif cc == 'Starkad_S128d':
+        cparams = HadesParams(field=Bin63, r=i_r or 8, c=i_c or 4, Rf=i_rf or 8, Rp=i_rp or 43, alpha=i_alpha)
+
+    elif cc == 'Poseidon_S128e':
+        cparams = HadesParams(field=F253, r=i_r or 10, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 85, alpha=i_alpha)
+
+    elif cc == 'Starkad_S128e':
+        cparams = HadesParams(field=Bin255, r=i_r or 10, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 88, alpha=i_alpha)
+
+    else:
+        raise ValueError('Unknown named cipher %s' % (cc, ))
+
+    if use_red:
+        cparams.change_rounds_detail(args.red_rounds_full1, args.red_rounds_partial, args.red_rounds_full2)
+
+    if not cparams:
+        raise ValueError('Function not specified')
+
+    """
+    raw: use permutation function hades_permutation with state size r + c (may decrease to 1+1) here.
+    full: call sponge with given parameters. 
+    """
+    field_size = get_field_size(cparams.field)
+    fieldizer = get_fieldizer(cparams.field)
+    defieldizer = get_defieldizer(cparams.field)
+    inp_filler = get_input_block_filler(cparams.field, uses_sponge=not args.raw, m=cparams.m, r=cparams.r)
+    islicer = InputSlicer(stream=sys.stdin.buffer, isize=args.inp_block_size if args.inp_block_size else field_size)
+    oseq = OutputSequencer(ostream=sys.stdout.buffer, fsize=field_size,
+                           osize=args.out_block_size if args.out_block_size else field_size)
+
+    int_reader = get_int_reader(islicer, args.inp_endian)
+    num_inp_blocks = args.inp_block_count if args.inp_block_count else 1
+    logger.info('Algorithms initialized, starting computation')
+
+    for blocks in chunks(int_reader(), num_inp_blocks):
+        inp_vct = inp_filler(blocks)
+        inp_vct = fieldizer(inp_vct)
+        # print(inp_vct)
+
+        if args.raw:
+            resb = hades_permutation(inp_vct, cparams)
+        else:
+            resb = sponge(hades_permutation, inp_vct, cparams)
+
+        outb = resb[:args.out_blocks or 1]
+        # print(outb)
+        outb = defieldizer(outb)
+        # print(outb)
+        oseq.dump(outb)
+    oseq.flush()
+
+
 if __name__ == '__main__':
-    test()
+    main_poseidon()

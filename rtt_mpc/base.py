@@ -174,7 +174,9 @@ class OutputSequencer:
             else:
                 self.btmp.clear()
                 self.btmp.frombytes(cb)
-                if self.osize <= self.fsize:
+                if self.osize == self.fsize:
+                    self.bout += self.btmp
+                elif self.osize < self.fsize:
                     self.bout += self.btmp[self.osize_b * 8 - self.osize:]
                 else:
                     self.bout += self.bfill

@@ -200,6 +200,7 @@ def main_gmimc():
         outb = defieldizer(outb)
         # print(outb)
         oseq.dump(outb)
+        oseq.maybe_flush()
     oseq.flush()
 
 

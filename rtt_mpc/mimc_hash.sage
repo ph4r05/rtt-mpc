@@ -141,6 +141,7 @@ def main_mimc():
         outb = defieldizer(outb)
         # print(outb)
         oseq.dump(outb)
+        oseq.maybe_flush()
     oseq.flush()
 
 

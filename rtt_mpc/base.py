@@ -1,7 +1,6 @@
 import math
-import time
-import sys
 import logging
+import binascii
 from typing import BinaryIO, Optional
 
 logger = logging.getLogger(__name__)
@@ -115,6 +114,24 @@ class BitCutter:
         raise SystemError('Not implemented yet')
 
 
+class BitCutter:
+    """
+    Simple bit cutter, slices given segment of data stream out.
+    Does not slice continuous bit stream to chunks, use InputSlicer for this purpose.
+
+    Situation we want to solve:
+    - Input read from STDIN via InputSlicer is a HW counter generated as 256b. We want to take just 252 bits.
+      InputSlicer has isize 256, but we need to slice it down
+
+    Note: we won't be needing it right now as it is better to generate HW counter on log2(prime)//8 bytes
+    (full byte so it is leq than moduli size), to avoid blocks colision (should HW 1 occur in bits "above" moduli)
+    """
+    def __init__(self, isize=256, osize=256):
+        self.isize = isize  # input block size, in bits
+        self.osize = osize  # output block size, in bits
+        raise SystemError('Not implemented yet')
+
+
 class OutputSequencer:
     """
     Takes array of bytes, sequences them to blocks. Designed for use with hash functions over prime fields.
@@ -134,7 +151,12 @@ class OutputSequencer:
        so the integer value of the fe is not modified in big-endian encoding.
 
     """
-    def __init__(self, fsize=256, osize=256, ostream: Optional[BinaryIO] = None, writer=None, endian='big'):
+    __slots__ = ('ostream', 'writer', 'endian', 'fsize', 'fsize_b', 'osize', 'osize_b', 'osize_aligned',
+                 'bit_append_possible', 'hexlify', 'use_bit_precision', 'whole_bytes', 'osize_offset',
+                 'b', 'btmp', 'bout', 'filler', 'do_padd', 'bfill', 'dump_bits', 'byte_dumper')
+
+    def __init__(self, fsize=256, osize=256, ostream: Optional[BinaryIO] = None, writer=None, endian='big',
+                 hexlify=False, use_bit_precision=False):
         self.ostream = ostream  # type: Optional[BinaryIO]
         self.writer = writer
         self.endian = endian
@@ -142,6 +164,12 @@ class OutputSequencer:
         self.fsize_b = int(math.ceil(self.fsize / 8.))  # full size in bytes (ceiled)
         self.osize = osize  # bit size of the output per element
         self.osize_b = int(math.ceil(self.osize / 8.))  # full size in bytes (ceiled)
+        self.osize_aligned = self.osize_b * 8 == self.osize
+        self.bit_append_possible = self.fsize == self.osize and self.osize_aligned
+        self.hexlify = hexlify
+        self.use_bit_precision = use_bit_precision
+        self.whole_bytes = (self.osize % 8) == 0 and not self.use_bit_precision
+        self.osize_offset = self.osize_b * 8 - self.osize
 
         self.b = None
         self.btmp = None
@@ -159,31 +187,73 @@ class OutputSequencer:
             self.bfill.setall(0)
             self.do_padd = self.osize > self.fsize
 
-    @property
-    def whole_bytes(self):
-        return (self.osize % 8) == 0
+        # Method of adding bitarray bits to accumulator
+        if self.bit_append_possible:
+            self.dump_bits = self.dump_bits_append  # direct add
+        elif self.osize <= self.fsize:
+            self.dump_bits = self.dump_bits_clamp   # add with clamping
+        else:
+            self.dump_bits = self.dump_bits_pad     # add with padding
 
-    def dump(self, output, flush=False):
+        # Method of adding byte chunks to accumulator
+        if self.whole_bytes:
+            self.byte_dumper = self.dump_bytes_whole  # operate on byte level
+        else:
+            self.byte_dumper = self.dump_bytes_bits   # operate on bit-level
+
+    def dump(self, output):
         for celem in output:
-            cb = int(celem).to_bytes(self.fsize_b, byteorder=self.endian)
-            if self.whole_bytes:
-                if self.do_padd:
-                    self.write(self.filler)
-                self.write(cb[:self.osize_b])
+            self.dump_int(int(celem))
 
-            else:
-                self.btmp.clear()
-                self.btmp.frombytes(cb)
-                if self.osize == self.fsize:
-                    self.bout += self.btmp
-                elif self.osize < self.fsize:
-                    self.bout += self.btmp[self.osize_b * 8 - self.osize:]
-                else:
-                    self.bout += self.bfill
-                    self.bout += self.btmp
+    def dump_int(self, celem):
+        cb = celem.to_bytes(self.fsize_b, byteorder=self.endian)
+        # btmp = self.btmp
+        # btmp.clear()
+        # btmp.frombytes(cb)
+        # # self.dump_bits(self.btmp, flush)
+        # self.bout += btmp[self.osize_offset:]
 
-                if (len(self.bout) % 8 == 0 and len(self.bout) >= 2048) or flush:
-                    self._flush()
+        self.dump_bytes(cb)
+
+    def dump_bytes(self, cb):
+        if self.whole_bytes:
+            if self.do_padd:
+                self.write(self.filler)
+            self.write(cb[:self.osize_b])
+
+        else:
+            btmp = self.btmp
+            btmp.clear()
+            btmp.frombytes(cb)
+            self.dump_bits(btmp)
+            # self.bout += self.btmp[self.osize_offset:]
+
+    def dump_bytes_whole(self, cb):
+        if self.do_padd:
+            self.write(self.filler)
+        self.write(cb[:self.osize_b])
+
+    def dump_bytes_bits(self, cb):
+        btmp = self.btmp
+        btmp.clear()
+        btmp.frombytes(cb)
+        self.dump_bits(btmp)
+        # self.bout += self.btmp[self.osize_offset:]
+
+    def dump_bits_append(self, buff):
+        self.bout += buff
+
+    def dump_bits_clamp(self, buff):
+        self.bout += buff[self.osize_offset:]
+
+    def dump_bits_pad(self, buff):
+        bout = self.bout
+        bout += self.bfill
+        bout += buff
+
+    def maybe_flush(self, flush=False):
+        if not self.whole_bytes and ((len(self.bout) % 8 == 0 and len(self.bout) >= 2048) or flush):
+            self._flush()
 
     def flush(self):
         if self.whole_bytes:
@@ -202,6 +272,9 @@ class OutputSequencer:
         self.bout = bitarray(endian=self.endian)
 
     def write(self, chunk):
+        if self.hexlify:
+            chunk = binascii.hexlify(chunk)
+
         if self.ostream is not None:
             self.ostream.write(chunk)
 

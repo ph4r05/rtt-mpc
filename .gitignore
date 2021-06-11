@@ -8,4 +8,4 @@ venv
 *.egg-info/
 *.sage.py
 *_sage.py
-
+sample_data

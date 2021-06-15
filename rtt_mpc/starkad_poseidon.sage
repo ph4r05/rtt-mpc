@@ -258,13 +258,6 @@ def main_poseidon():
     ]
     use_spec = sum(is_spec) == len(is_spec)
 
-    if cc is not None and sum(is_spec) > 0:
-        raise ValueError('Cannot define named function and params specs, conflict')
-    if sum(is_red) > 0 and not use_spec:
-        raise ValueError('When using reduced option, specify all parameters')
-    if not args.raw and sum(is_spec) > 0 and not use_spec:
-        raise ValueError('When using specs, specify all parameters')
-
     sfield = (args.field or 'F_QBLS12_381').upper()
     fields = MPC_FIELDS
     field = (fields[sfield] if sfield in fields else None)

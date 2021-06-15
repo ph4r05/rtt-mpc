@@ -1,0 +1,43 @@
+{
+  "notes":"",
+  "seed":"00000000000000ff",
+  "tv_size":16,
+  "tv_count":655360,
+  "file_name":"AES_r10_b16_10MB.bin",
+  "stdout": true,
+  "stream":{
+    "type": "block",
+    "init_frequency": "only_once",
+    "algorithm": "AES",
+    "round": 10,
+    "block_size": 16,
+    "plaintext": {
+      "type": "xor_stream",
+      "source": {
+        "type": "tuple_stream",
+        "sources": [
+          {
+            "type": "counter",
+            "output_size": 16
+          },
+          {
+            "type": "single_value_stream",
+            "output_size": 16,
+            "source": {
+                "type": "pcg32_stream",
+                "output_size": 16
+            }
+          }
+        ]
+      }
+    },
+    "key_size": 16,
+    "key": {
+      "type": "pcg32_stream"
+    },
+    "iv_size": 16,
+    "iv":{
+      "type": "false_stream"
+    }
+  }
+}

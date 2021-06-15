@@ -1,0 +1,40 @@
+{
+  "notes": "",
+  "seed": "0000000000000000",
+  "tv-size": null,
+  "tv-count": null,
+  "tv_size": 31,
+  "tv_count": 338251,
+  "stdout": true,
+  "file_name": "plain_ctr.bin",
+  "stream": {
+    "type": "xor_stream",
+    "source": {
+      "type": "tuple_stream",
+      "sources": [
+        {
+          "type": "counter",
+          "output_size": 31
+        },
+        {
+          "type": "single_value_stream",
+          "output_size": 31,
+          "source": {
+            "type": "tuple_stream",
+            "sources": [
+              {
+                "type": "false_stream",
+                "output_size": 29
+              },
+              {
+                "type": "const_stream",
+                "output_size": 2,
+                "value": "0000"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

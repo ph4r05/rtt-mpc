@@ -219,7 +219,7 @@ class OutputSequencer:
         if self.whole_bytes:
             if self.do_padd:
                 self.write(self.filler)
-            self.write(cb[:self.osize_b])
+            self.write(cb[-self.osize_b:])  # take last bits, big-endian least significant bits
 
         else:
             btmp = self.btmp
@@ -231,7 +231,7 @@ class OutputSequencer:
     def dump_bytes_whole(self, cb):
         if self.do_padd:
             self.write(self.filler)
-        self.write(cb[:self.osize_b])
+        self.write(cb[-self.osize_b:])
 
     def dump_bytes_bits(self, cb):
         btmp = self.btmp

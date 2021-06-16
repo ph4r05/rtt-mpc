@@ -108,6 +108,8 @@ def main_gmimc():
                              'or left-pad the field element (e.g., to full bytes)')
     parser.add_argument('--out-blocks', dest='out_blocks', type=int,
                         help='Number of output blocks to process')
+    parser.add_argument('--max-out', dest='max_out', type=int,
+                        help='Maximum length in bits for output')
 
     logger.info('Initializing...')
     cparams = None
@@ -173,6 +175,7 @@ def main_gmimc():
         logger.info("Round reduced to: %s" % (args.rounds,))
         cparams.red_rounds = args.rounds
 
+    max_out = args.max_out
     field_size = get_field_size(cparams.field)
     fieldizer = get_fieldizer(cparams.field)
     defieldizer = get_defieldizer(cparams.field)
@@ -201,6 +204,10 @@ def main_gmimc():
         # print(outb)
         oseq.dump(outb)
         oseq.maybe_flush()
+
+        if max_out is not None and oseq.bits_written >= max_out:
+            break
+
     oseq.flush()
 
 

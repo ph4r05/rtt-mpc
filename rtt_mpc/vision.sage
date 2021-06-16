@@ -180,6 +180,8 @@ def main_vision():
                              'or left-pad the field element (e.g., to full bytes)')
     parser.add_argument('--out-blocks', dest='out_blocks', type=int,
                         help='Number of output blocks to process')
+    parser.add_argument('--max-out', dest='max_out', type=int,
+                        help='Maximum length in bits for output')
 
     cparams = None
 
@@ -299,6 +301,7 @@ def main_vision():
     raw: use permutation function hades_permutation with state size r + c (may decrease to 1+1) here.
     full: call sponge with given parameters. 
     """
+    max_out = args.max_out
     field_size = get_field_size(cparams.field)
     fieldizer = get_fieldizer(cparams.field)
     defieldizer = get_defieldizer(cparams.field)
@@ -327,6 +330,10 @@ def main_vision():
         # print(outb)
         oseq.dump(outb)
         oseq.maybe_flush()
+
+        if max_out is not None and oseq.bits_written >= max_out:
+            break
+
     oseq.flush()
 
 

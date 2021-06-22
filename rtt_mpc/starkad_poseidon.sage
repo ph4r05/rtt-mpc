@@ -289,6 +289,12 @@ def main_poseidon():
                                   mds=Poseidon_S128f_MDS_matrix,
                                   lsbox=False)
 
+    elif cc == 'Poseidon_S80b':
+        cparams = HadesParams(field=F161, r=i_r or 2, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 50, alpha=i_alpha)
+
+    elif cc == 'Starkad_S80b':
+        cparams = HadesParams(field=Bin161, r=i_r or 2, c=i_c or 1, Rf=i_rf or 8, Rp=i_rp or 52, alpha=i_alpha)
+
     elif cc == 'Poseidon_S128a':
         cparams = HadesParams(field=F125, r=i_r or 2, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 81, alpha=i_alpha)
 
@@ -303,6 +309,9 @@ def main_poseidon():
 
     elif cc == 'Poseidon_S128c':
         cparams = HadesParams(field=F125, r=i_r or 10, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 83, alpha=i_alpha)
+
+    elif cc == 'Starkad_S128c':
+        cparams = HadesParams(field=Bin127, r=i_r or 10, c=i_c or 2, Rf=i_rf or 8, Rp=i_rp or 86, alpha=i_alpha)
 
     elif cc == 'Poseidon_S128d':
         cparams = HadesParams(field=F61, r=i_r or 8, c=i_c or 4, Rf=i_rf or 8, Rp=i_rp or 40, alpha=i_alpha)

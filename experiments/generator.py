@@ -140,39 +140,43 @@ def make_ctr_config(blen=31, offset='00', tv_count=None, min_data=None):
         "tv_count": tv_count,
         "stdout": True,
         "file_name": "plain_ctr.bin",
-        "stream": {
-          "type": "xor_stream",
-          "source": {
-            "type": "tuple_stream",
-            "sources": [
-              {
-                "type": "counter",
-                "output_size": blen
-              },
-              {
-                "type": "single_value_stream",
-                "output_size": blen,
-                "source": {
-                  "type": "tuple_stream",
-                  "sources": [
-                    {
-                      "type": "false_stream",
-                      "output_size": blen - 1
-                    },
-                    {
-                      "type": "const_stream",
-                      "output_size": 1,
-                      "value": offset
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
+        "stream": make_ctr_core(blen, offset)
       }
 
     return ctr_file
+
+
+def make_ctr_core(blen, offset):
+    return {
+        "type": "xor_stream",
+        "source": {
+            "type": "tuple_stream",
+            "sources": [
+                {
+                    "type": "counter",
+                    "output_size": blen
+                },
+                {
+                    "type": "single_value_stream",
+                    "output_size": blen,
+                    "source": {
+                        "type": "tuple_stream",
+                        "sources": [
+                            {
+                                "type": "false_stream",
+                                "output_size": blen - 1
+                            },
+                            {
+                                "type": "const_stream",
+                                "output_size": 1,
+                                "value": offset
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
 
 
 def make_hw_config(blen=31, weight=4, offset=None, tv_count=None, offset_range: float = None, min_data=None):
@@ -232,6 +236,14 @@ def make_hw_config(blen=31, weight=4, offset=None, tv_count=None, offset_range: 
     }
 
     return hw_file
+
+
+def make_hw_core(offset, weight):
+    return {
+        "type": "hw_counter",
+        "initial_state": offset,
+        "hw": weight
+    }
 
 
 def get_strategy_prime(modulus, ob, ib=256, st=6, max_out=None, seed=None):
@@ -428,8 +440,8 @@ def gen_all(data_sizes=None, eprefix=None):
            + gen_rescue(data_sizes, eprefix) \
            + gen_vision(data_sizes, eprefix) \
            + gen_gmimc(data_sizes, eprefix) \
-           + gen_mimc(data_sizes, eprefix)
-    # TODO: gen lowmc, specific as implemented in cryptostreams
+           + gen_mimc(data_sizes, eprefix) \
+           + gen_lowmc(data_sizes, eprefix)
 
 
 def get_prime_strategies(moduli, moduli_bits, out_block_bits, max_out_b):
@@ -584,6 +596,114 @@ def gen_script_config(to_gen, is_prime=True, data_sizes=None, eprefix=None):
               }
             }
             agg_scripts.append((ename, max_out/1024/1024, script,))
+    return agg_scripts
+
+
+def gen_lowmc(data_sizes=None, eprefix=None):
+    """lowmc operates over binary field / whole bit blocks"""
+
+    to_gen = [
+        # name, rounds-all, keysize, blocksize, sboxes, rounds to try
+        ('lowmc-s80a', (12, ), 80, 256, 49, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s80a', (12, ), 80, 128, 31, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128a', (14, ), 128, 256, 63, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128b', (252, ), 128, 128, 1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128c', (128, ), 128, 128, 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128d', (88, ), 128, 128, 3, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+    ]
+
+    data_sizes = data_sizes or [100 * 1024 * 1024]
+    full_tpl = '{{CRYPTOSTREAMS_BIN}} -c={{FILE_CONFIG1.JSON}}'
+
+    agg_configs = []
+    agg_scripts = []
+    for ccfg in itertools.product(augment_round_configs(to_gen), data_sizes):
+        cpos = ccfg[0]
+        max_out = ccfg[1]
+        cround = cpos[-1]
+
+        inp_block_bytes = cpos[3] // 8
+        key_size = cpos[2] // 8
+        sboxes = cpos[4]
+        min_data = max_out
+        tv_count = int(math.ceil(8*max_out / cpos[3]))
+
+        ctr_configs = [
+            ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000000'),
+            ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000001'),
+            ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000002'),
+        ]
+
+        weight = comp_hw_weight(inp_block_bytes, samples=3, min_data=min_data)
+        hw_configs = [
+            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
+             make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000003'),
+            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
+             make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000004'),
+            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
+             make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000005'),
+        ]
+
+        agg_inputs = ctr_configs + hw_configs
+        agg_spreads = [('', None)]  # get_binary_strategies(moduli_bits, out_block_bits, max_out_b)
+
+        for configs in itertools.product(agg_spreads, agg_inputs):
+            inp_name = configs[1][0]
+            seed = configs[1][2]
+            spread_name = configs[0][0]
+
+            inp = configs[1][1]
+            cfull_tpl = full_tpl
+
+            agg_configs.append((inp, cfull_tpl))
+            ename = '%s%s-%s-raw-r%s-inp-%s-spr-%s-s%sMB' \
+                    % (eprefix or '', cpos[0], 'bin',
+                       cpos[5], inp_name, spread_name, int(max_out / 1024 / 1024))
+
+            lowmc_cfg = {
+                "type": "block",
+                "init_frequency": "only_once",
+                "algorithm": "LOWMC",
+                "round": cround,
+                "block_size": inp_block_bytes,
+                "block_size_bits": inp_block_bytes * 8,
+                "key_size_bits": key_size * 8,
+                "plaintext": inp['stream'],
+                "key_size": key_size,
+                "key": {
+                    "type": "pcg32_stream"
+                },
+                "iv_size": key_size,
+                "iv": {
+                    "type": "false_stream"
+                }
+            }
+
+            if sboxes:
+                lowmc_cfg["sboxes"] = sboxes
+
+            script = {
+                "stream": {
+                    "type": "shell",
+                    "direct_file": False,
+                    "exec": cfull_tpl,
+                },
+                "input_files": {
+                    "CONFIG1.JSON": {
+                        "note": inp['notes'],
+                        "data": {
+                            "notes": ename,
+                            "seed": seed,
+                            "tv_size": inp_block_bytes,
+                            "tv_count": tv_count,
+                            "file_name": "%s.bin" % ename,
+                            "stdout": True,
+                            "stream": lowmc_cfg
+                        }
+                    }
+                }
+            }
+            agg_scripts.append((ename, max_out / 1024 / 1024, script,))
     return agg_scripts
 
 

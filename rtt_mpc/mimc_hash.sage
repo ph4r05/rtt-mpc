@@ -92,18 +92,19 @@ def main_mimc():
     cparams = None
     args = parser.parse_args()
     cc = args.function
+    i_rr = args.rounds
 
-    if cc is None or cc == '' or cc == 'S128':
+    if cc is None or cc == '' or cc == 'S128' or cc == 'MIMC_S128':
         # Reasonable default for unnamed ciphers
-        S128 = MiMCParams(field=F253, n_rounds=320)
+        S128 = MiMCParams(field=F253, n_rounds=320, red_rounds=i_rr)
         cparams = S128
 
-    elif cc == 'S45':
-        S45 = MiMCParams(field=F91, n_rounds=116)
+    elif cc == 'S45' or cc == 'MIMC_S45':
+        S45 = MiMCParams(field=F91, n_rounds=116, red_rounds=i_rr)
         cparams = S45
 
-    elif cc == 'S80':
-        S80 = MiMCParams(field=F161, n_rounds=204)
+    elif cc == 'S80' or cc == 'MIMC_S80':
+        S80 = MiMCParams(field=F161, n_rounds=204, red_rounds=i_rr)
         cparams = S80
 
     else:

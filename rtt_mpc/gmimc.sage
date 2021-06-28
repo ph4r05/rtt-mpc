@@ -115,54 +115,55 @@ def main_gmimc():
     cparams = None
     args = parser.parse_args()
     cc = args.function
+    i_r, i_c, i_rr = args.rate, args.capacity, args.rounds
 
     if cc is None or cc == '' or cc == 'S128b':
         # Reasonable default for unnamed ciphers
-        S128a = GMiMCParams(field=F125, r=2, c=2, num_rounds=166)
+        S128a = GMiMCParams(field=F125, r=i_r or 2, c=i_c or 2, num_rounds=166, red_rounds=i_rr)
         cparams = S128a
 
     elif cc == 'S45a':
-        S45a = GMiMCParams(field=F91, r=2, c=1, num_rounds=121)
+        S45a = GMiMCParams(field=F91, r=i_r or 2, c=i_c or 1, num_rounds=121, red_rounds=i_rr)
         cparams = S45a
 
     elif cc == 'S45b':
-        S45b = GMiMCParams(field=F91, r=10, c=1, num_rounds=137)
+        S45b = GMiMCParams(field=F91, r=i_r or 10, c=i_c or 1, num_rounds=137, red_rounds=i_rr)
         cparams = S45b
 
     elif cc == 'S80a':
-        S80a = GMiMCParams(field=F81, r=2, c=2, num_rounds=111)
+        S80a = GMiMCParams(field=F81, r=i_r or 2, c=i_c or 2, num_rounds=111, red_rounds=i_rr)
         cparams = S80a
 
     elif cc == 'S80b':
-        S80b = GMiMCParams(field=F161, r=2, c=1, num_rounds=210)
+        S80b = GMiMCParams(field=F161, r=i_r or 2, c=i_c or 1, num_rounds=210, red_rounds=i_rr)
         cparams = S80b
 
     elif cc == 'S80c':
-        S80c = GMiMCParams(field=F161, r=10, c=1, num_rounds=226)
+        S80c = GMiMCParams(field=F161, r=i_r or 10, c=i_c or 1, num_rounds=226, red_rounds=i_rr)
         cparams = S80c
 
     elif cc == 'S128a':
-        S128a = GMiMCParams(field=F125, r=2, c=2, num_rounds=166)
+        S128a = GMiMCParams(field=F125, r=i_r or 2, c=i_c or 2, num_rounds=166, red_rounds=i_rr)
         cparams = S128a
 
     elif cc == 'S128c':
-        S128c = GMiMCParams(field=F125, r=10, c=2, num_rounds=182)
+        S128c = GMiMCParams(field=F125, r=i_r or 10, c=i_c or 2, num_rounds=182, red_rounds=i_rr)
         cparams = S128c
 
     elif cc == 'S128d':
-        S128d = GMiMCParams(field=F61, r=8, c=4, num_rounds=101)
+        S128d = GMiMCParams(field=F61, r=i_r or 8, c=i_c or 4, num_rounds=101, red_rounds=i_rr)
         cparams = S128d
 
     elif cc == 'S128e':
-        S128e = GMiMCParams(field=F253, r=10, c=1, num_rounds=342)
+        S128e = GMiMCParams(field=F253, r=i_r or 10, c=i_c or 1, num_rounds=342, red_rounds=i_rr)
         cparams = S128e
 
     elif cc == 'S256a':
-        S256a = GMiMCParams(field=F125, r=4, c=4, num_rounds=174)
+        S256a = GMiMCParams(field=F125, r=i_r or 4, c=i_c or 4, num_rounds=174, red_rounds=i_rr)
         cparams = S256a
 
     elif cc == 'S256b':
-        S256b = GMiMCParams(field=F125, r=10, c=4, num_rounds=186)
+        S256b = GMiMCParams(field=F125, r=i_r or 10, c=i_c or 4, num_rounds=186, red_rounds=i_rr)
         cparams = S256b
 
     else:

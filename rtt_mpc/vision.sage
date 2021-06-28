@@ -198,15 +198,10 @@ def main_vision():
     ]
     use_spec = sum(is_spec) == len(is_spec)
 
-    if cc is not None and sum(is_spec) > 0:
-        raise ValueError('Cannot define named function and params specs, conflict')
-    if not args.raw and sum(is_spec) > 0 and not use_spec:
-        raise ValueError('When using specs, specify all parameters')
-
     sfield = (args.field or 'F_QBLS12_381').upper()
     fields = MPC_FIELDS
     field = (fields[sfield] if sfield in fields else None)
-    i_r, i_c, i_rf, i_r = args.rate, args.capacity, args.rounds_full, args.rounds
+    i_r, i_c, i_rf, i_rr = args.rate, args.capacity, args.rounds_full, args.rounds
 
     if cc is None or cc == '':
         # Reasonable default for unnamed ciphers
@@ -217,79 +212,79 @@ def main_vision():
                                    reduced_rounds=i_r)
 
     elif cc == 'Rescue_S128e':
-        cparams = MarvellousParams(field=F253, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F253, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S45a':
-        cparams = MarvellousParams(field=F91, r=2, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F91, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S45a':
-        cparams = MarvellousParams(field=Bin91, r=2, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin91, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S45b':
-        cparams = MarvellousParams(field=F91, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F91, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S45b':
-        cparams = MarvellousParams(field=Bin91, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin91, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S80a':
-        cparams = MarvellousParams(field=F81, r=2, c=2, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F81, r=i_r or 2, c=i_c or 2, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S80a':
-        cparams = MarvellousParams(field=Bin81, r=2, c=2, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin81, r=i_r or 2, c=i_c or 2, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S80b':
-        cparams = MarvellousParams(field=F161, r=2, c=1, num_rounds=i_rf or 14, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F161, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 14, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S80b':
-        cparams = MarvellousParams(field=Bin161, r=2, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin161, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S80c':
-        cparams = MarvellousParams(field=F161, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F161, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S80c':
-        cparams = MarvellousParams(field=Bin161, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin161, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S128a':
-        cparams = MarvellousParams(field=F125, r=2, c=2, num_rounds=i_rf or 16, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F125, r=i_r or 2, c=i_c or 2, num_rounds=i_rf or 16, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S128a':
-        cparams = MarvellousParams(field=Bin127, r=2, c=2, num_rounds=i_rf or 12, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin127, r=i_r or 2, c=i_c or 2, num_rounds=i_rf or 12, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S128b':
-        cparams = MarvellousParams(field=F253, r=2, c=1, num_rounds=i_rf or 22, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F253, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 22, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S128b':
-        cparams = MarvellousParams(field=Bin255, r=2, c=1, num_rounds=i_rf or 16, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin255, r=i_r or 2, c=i_c or 1, num_rounds=i_rf or 16, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S128c':
-        cparams = MarvellousParams(field=F125, r=10, c=2, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F125, r=i_r or 10, c=i_c or 2, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S128c':
-        cparams = MarvellousParams(field=Bin127, r=10, c=2, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin127, r=i_r or 10, c=i_c or 2, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S128d':
-        cparams = MarvellousParams(field=F61, r=8, c=4, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F61, r=i_r or 8, c=i_c or 4, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S128d':
-        cparams = MarvellousParams(field=Bin63, r=8, c=4, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin63, r=i_r or 8, c=i_c or 4, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S128e':
-        cparams = MarvellousParams(field=F253, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F253, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S128e':
-        cparams = MarvellousParams(field=Bin255, r=10, c=1, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin255, r=i_r or 10, c=i_c or 1, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S256a':
-        cparams = MarvellousParams(field=F125, r=4, c=4, num_rounds=i_rf or 16, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F125, r=i_r or 4, c=i_c or 4, num_rounds=i_rf or 16, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S256a':
-        cparams = MarvellousParams(field=Bin127, r=4, c=4, num_rounds=i_rf or 12, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin127, r=i_r or 4, c=i_c or 4, num_rounds=i_rf or 12, reduced_rounds=i_rr)
 
     elif cc == 'Rescue_S256b':
-        cparams = MarvellousParams(field=F125, r=10, c=4, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=F125, r=i_r or 10, c=i_c or 4, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     elif cc == 'Vision_S256b':
-        cparams = MarvellousParams(field=Bin127, r=10, c=4, num_rounds=i_rf or 10, reduced_rounds=i_r)
+        cparams = MarvellousParams(field=Bin127, r=i_r or 10, c=i_c or 4, num_rounds=i_rf or 10, reduced_rounds=i_rr)
 
     else:
         raise ValueError('Unknown named cipher %s' % (cc, ))

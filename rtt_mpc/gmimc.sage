@@ -96,6 +96,10 @@ def main_gmimc():
                         help='Named function name to use')
     parser.add_argument('-r', dest='rounds', type=int,
                         help='rounds')
+    parser.add_argument('--rate', dest='rate', type=int,
+                        help='Rate r')
+    parser.add_argument('--cap', dest='capacity', type=int,
+                        help='Capacity c')
 
     parser.add_argument('--inp-endian', dest='inp_endian', default='big',
                         help='Input block size endian')

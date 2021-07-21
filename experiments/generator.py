@@ -127,7 +127,7 @@ def make_ctr_config(blen=31, offset='00', tv_count=None, min_data=None):
         logger.info('TV count is higher than ctr space %s bits, max vals: %s'
                     % (blen-1, max_vals))
 
-    if min_data is not None and min_data > blen * min(max_vals, tv_count) * blen:
+    if min_data is not None and min_data > blen * min(max_vals, tv_count):
         raise ValueError('Condition on minimal data could not be fulfilled')
 
     note = 'plaintext-ctr-%sbit-%.2fMB' % (blen*8, data_mb)
@@ -604,12 +604,12 @@ def gen_lowmc(data_sizes=None, eprefix=None):
 
     to_gen = [
         # name, rounds-all, keysize, blocksize, sboxes, rounds to try
-        ('lowmc-s80a', (12, ), 80, 256, 49, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-        ('lowmc-s80a', (12, ), 80, 128, 31, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-        ('lowmc-s128a', (14, ), 128, 256, 63, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-        ('lowmc-s128b', (252, ), 128, 128, 1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-        ('lowmc-s128c', (128, ), 128, 128, 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-        ('lowmc-s128d', (88, ), 128, 128, 3, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s80a', (12, ), 80, 256, 49, [3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s80a', (12, ), 80, 128, 31, [3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128a', (14, ), 128, 256, 63, [3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ('lowmc-s128b', (252, ), 128, 128, 1, [3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240]),
+        ('lowmc-s128c', (128, ), 128, 128, 2, [3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]),
+        ('lowmc-s128d', (88, ), 128, 128, 3, [3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 30, 40, 50, 60, 70, 80]),
     ]
 
     data_sizes = data_sizes or [100 * 1024 * 1024]

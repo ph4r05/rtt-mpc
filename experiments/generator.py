@@ -559,8 +559,8 @@ def gen_script_config(to_gen, is_prime=True, data_sizes=None, eprefix=None):
         weight = comp_hw_weight(inp_block_bytes, samples=3, min_data=min_data)
         hw_configs = [
             ('lhw00-b%s-w%s' % (inp_block_bytes, weight), make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data)),
-            ('lhw01-b%s-w%s' % (inp_block_bytes, weight), make_hw_config(inp_block_bytes, weight=weight, offset_range=1/3, min_data=min_data)),
-            ('lhw02-b%s-w%s' % (inp_block_bytes, weight), make_hw_config(inp_block_bytes, weight=weight, offset_range=2/3, min_data=min_data)),
+            ('lhw01-b%s-w%s' % (inp_block_bytes, weight), make_hw_config(inp_block_bytes, weight=weight, offset_range=1/3., min_data=min_data)),
+            ('lhw02-b%s-w%s' % (inp_block_bytes, weight), make_hw_config(inp_block_bytes, weight=weight, offset_range=2/3., min_data=min_data)),
         ]
 
         agg_inputs = ctr_configs + hw_configs
@@ -630,18 +630,18 @@ def gen_lowmc(data_sizes=None, eprefix=None):
 
         ctr_configs = [
             ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000000'),
-            ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000001'),
-            ('ctr00-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='00', min_data=min_data), '0000000000000002'),
+            ('ctr01-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='01', min_data=min_data), '0000000000000001'),
+            ('ctr02-b%s' % inp_block_bytes, make_ctr_config(inp_block_bytes, offset='02', min_data=min_data), '0000000000000002'),
         ]
 
         weight = comp_hw_weight(inp_block_bytes, samples=3, min_data=min_data)
         hw_configs = [
-            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
+            ('lhw01-b%s-w%s' % (inp_block_bytes, weight),
              make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000003'),
-            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
-             make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000004'),
-            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
-             make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000005'),
+            ('lhw02-b%s-w%s' % (inp_block_bytes, weight),
+             make_hw_config(inp_block_bytes, weight=weight, offset_range=1/3., min_data=min_data), '0000000000000004'),
+            ('lhw03-b%s-w%s' % (inp_block_bytes, weight),
+             make_hw_config(inp_block_bytes, weight=weight, offset_range=2/3., min_data=min_data), '0000000000000005'),
         ]
 
         agg_inputs = ctr_configs + hw_configs
@@ -725,7 +725,7 @@ def write_submit(data):
         fh.write("#!/bin/bash\n")
         for name, esize in name_list:
             # fh.write("submit_experiment --dieharder --email ph4r05@gmail.com  --name 't06-dieharder-%s' --cfg 'dieharder-paper-1GB.json' --cryptostreams-config '%s'\n" % (name, name))
-            fh.write("submit_experiment --all_batteries --email ph4r05@gmail.com "
+            fh.write("submit_experiment --all_batteries "
                      "--name '%s' "
                      "--cfg '/home/debian/rtt-home/RTTWebInterface/media/predefined_configurations/%sMB.json' "
                      "--rtt-data-gen-config '%s'\n" % (name, esize, name))

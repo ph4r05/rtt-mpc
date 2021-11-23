@@ -446,19 +446,23 @@ def gen_all(data_sizes=None, eprefix=None):
 
 def get_prime_strategies(moduli, moduli_bits, out_block_bits, max_out_b):
     return [
-        # fit to moduli size
+        # fit to moduli size; 6: rand offset window, rejection sample on moduli.
+        # ob = moduli_bits, spread to 2**moduli_bits, fill whole modulus, does not have to be byte-aligned
         ('s6mb', get_strategy_prime_expdrop6(moduli, ob=moduli_bits, ib=out_block_bits, max_out=max_out_b)),
 
         # fit to moduli size, byte align top
+        # ob = out_block_bits, moduli bits, byte aligned, contains whole modulus
         ('s6ob', get_strategy_prime_expdrop6(moduli, ob=out_block_bits, ib=out_block_bits, max_out=max_out_b)),
 
-        # fit to moduli size
+        # fit to moduli size; 15: spread_inverse_frac, inverse sampling with arbitrary precision
+        # 15: stretch to whole interval by scaling, fill gaps from stretch by uniform number dist, arbitrary prec.
         ('s15mb', get_strategy_prime_expinv15(moduli, ob=moduli_bits, ib=out_block_bits, max_out=max_out_b)),
 
         # fit to moduli size, byte align top
         ('s15ob', get_strategy_prime_expinv15(moduli, ob=out_block_bits, ib=out_block_bits, max_out=max_out_b)),
 
         # one bit smaller than moduli, 2x more data
+        # 16: simple rejection sampling on 2**(moduli_bits - 1), cuts top bit
         ('s16mb1', get_strategy_prime_drop16(moduli, ob=moduli_bits - 1, ib=out_block_bits, max_out=max_out_b))
     ]
 
@@ -636,11 +640,11 @@ def gen_lowmc(data_sizes=None, eprefix=None):
 
         weight = comp_hw_weight(inp_block_bytes, samples=3, min_data=min_data)
         hw_configs = [
-            ('lhw01-b%s-w%s' % (inp_block_bytes, weight),
+            ('lhw00-b%s-w%s' % (inp_block_bytes, weight),
              make_hw_config(inp_block_bytes, weight=weight, offset_range=0.0, min_data=min_data), '0000000000000003'),
-            ('lhw02-b%s-w%s' % (inp_block_bytes, weight),
+            ('lhw01-b%s-w%s' % (inp_block_bytes, weight),
              make_hw_config(inp_block_bytes, weight=weight, offset_range=1/3., min_data=min_data), '0000000000000004'),
-            ('lhw03-b%s-w%s' % (inp_block_bytes, weight),
+            ('lhw02-b%s-w%s' % (inp_block_bytes, weight),
              make_hw_config(inp_block_bytes, weight=weight, offset_range=2/3., min_data=min_data), '0000000000000005'),
         ]
 

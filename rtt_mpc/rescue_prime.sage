@@ -286,10 +286,10 @@ def main_rescuep():
         cparams = RescuePrimeParams(field, i_s, i_c, i_sec, reduced_rounds=i_rr)
 
     elif cc == 'RescueP_S80a' or not cc:
-        cparams = RescuePrimeParams(F91, 2, 1, 80, reduced_rounds=i_rr)  # N = 9
+        cparams = RescuePrimeParams(F91, 2, 1, 80, reduced_rounds=i_rr)  # N = 18
 
     elif cc == 'RescueP_S80b':
-        cparams = RescuePrimeParams(F253, 2, 1, 80, reduced_rounds=i_rr)  # N = 9
+        cparams = RescuePrimeParams(F253, 2, 1, 80, reduced_rounds=i_rr)  # N = 18
 
     elif cc == 'RescueP_S80c' or not cc:
         cparams = RescuePrimeParams(F91, 4, 2, 80, reduced_rounds=i_rr)  # N = 9
@@ -298,16 +298,16 @@ def main_rescuep():
         cparams = RescuePrimeParams(F253, 4, 2, 80, reduced_rounds=i_rr)  # N = 9
 
     elif cc == 'RescueP_128a':
-        cparams = RescuePrimeParams(F91, 2, 1, 128, reduced_rounds=i_rr)  # N = 14
+        cparams = RescuePrimeParams(F91, 2, 1, 128, reduced_rounds=i_rr)  # N = 27
 
     elif cc == 'RescueP_128b':
-        cparams = RescuePrimeParams(F253, 2, 1, 128, reduced_rounds=i_rr)  # N = 14
+        cparams = RescuePrimeParams(F253, 2, 1, 128, reduced_rounds=i_rr)  # N = 27
 
     elif cc == 'RescueP_128c':
-        cparams = RescuePrimeParams(F91, 4, 2, 128, reduced_rounds=i_rr)  # N = 8
+        cparams = RescuePrimeParams(F91, 4, 2, 128, reduced_rounds=i_rr)  # N = 14
 
     elif cc == 'RescueP_128d':
-        cparams = RescuePrimeParams(F253, 4, 2, 128, reduced_rounds=i_rr)  # N = 8
+        cparams = RescuePrimeParams(F253, 4, 2, 128, reduced_rounds=i_rr)  # N = 14
 
     else:
         raise ValueError('Unknown named cipher %s' % (cc, ))
